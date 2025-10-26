@@ -1,0 +1,22 @@
+{
+  "name": "3davatar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "dev": "webpack --config webpack.dev.js --watch",
+    "serve": "webpack serve --config webpack.dev.js",
+    "debug": "webpack --config webpack.dev.js && echo 'Build complete. Open debug.html in your browser.'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "three": "^0.180.0",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  }
+}
