@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/main.js',
+  entry: './src/main.ts',
 
   output: {
     filename: '3davatar.min.js',

@@ -9,7 +9,7 @@
             margin: 0;
             padding: 20px;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #181818;
         }
         .controls {
             position: absolute;
@@ -60,6 +60,7 @@
         <h4>Debug Information</h4>
         <div id="debug-content"></div>
     </div>
+    <div id="avatar-container" style="width: auto; height: 800px; border: 1px solid #c0c0c0;"></div>
 
     <script src="dist/bundle.js"></script>
     <script>
@@ -90,12 +91,21 @@
 
         function runShowFunction() {
             console.log("Running show() function in debug mode");
-            clearScene();
-            if (window['3DAvatar'] && window['3DAvatar'].show) {
-                window['3DAvatar'].show();
-            } else {
-                console.error("3DAvatar.show function not found");
-            }
+            
+            window['3DAvatar'].test();
+
+            
+
+            // if (window['3DAvatar'] && window['3DAvatar'].show) {
+
+            //     const renderTargetDOM = document.getElementById('avatar-container');
+            //     window['3DAvatar'].show( "avatar-creator/sampled_depth_points_with_color.json",  {
+            //         duration: 500,
+            //         targetDOM: renderTargetDOM,
+            //     });
+            // } else {
+            //     console.error("3DAvatar.show function not found");
+            // }
         }
 
         function runShowWithOptions() {
@@ -114,17 +124,6 @@
             }
         }
 
-        function clearScene() {
-            // Remove any existing canvas elements
-            const canvasElements = document.querySelectorAll('canvas');
-            canvasElements.forEach(canvas => canvas.remove());
-            console.log("Scene cleared");
-        }
-
-        function toggleDebugInfo() {
-            const debugPanel = document.getElementById('debug-info');
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        }
 
         // Enable debug mode on page load
         enableDebugMode();
