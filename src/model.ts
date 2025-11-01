@@ -5,15 +5,27 @@ export class Point {
     public y: number;
     public z: number;
 
-    public color: HEXColor; 
+    public color: HEXColor;
 
     constructor(x: number, y: number, z: number, color: HEXColor) {
         this.x = x;
         this.y = y;
         this.z = z;
+
         this.color = color;
     }
+}
 
+export class ModelSet {
+    private models : Model[] = [];
+
+    public addModel(model: Model) {
+        this.models.push(model);
+    }
+
+    public getModels(): Model[] {
+        return this.models;
+    }
 }
 
 export class Model {
@@ -48,9 +60,9 @@ export async function loadModel(modelURL: string) : Promise<Model | null> {
 
         for (const pointData of pointsData) {
             const point = new Point(
-                pointData.x,
-                pointData.y,
-                pointData.z,
+                pointData.position[0],
+                pointData.position[1],
+                pointData.position[2],
                 pointData.color
             );
             model.addPoint(point);
@@ -62,5 +74,3 @@ export async function loadModel(modelURL: string) : Promise<Model | null> {
         return null;
     }
 }
-
-// export { Model, ModelSet, loadModelSetFile as loadFile };

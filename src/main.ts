@@ -24,33 +24,22 @@ class Avatar3D {
     private tweenGroup = new TWEEN.Group()
     private options: Options;
 
-    constructor(options: Options) {
+    constructor(models : Model[], options: Options) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ alpha: true });
         this.renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
         this.options = options;
-    }
+        this.models = models;
 
-    public async show(modelURL : string) {
-        const container = document.getElementById('avatar-container');
+        const container = document.getElementById(options.renderTargetID);
         if (!container) {
-            console.error(`Container with ID '${'avatar-container'}' not found.`);
-            return;
+            throw new Error(`Container with ID '${options.renderTargetID}' not found.`);
         }
 
-        let model = await loadModel(modelURL);
-        if (model == null) {
-            console.error("Failed to load model.");
-            return;
-        }
-
-        this.models.push(model);
 
         this.renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(this.renderer.domElement);
-
-        this.camera.position.z = 3;
 
         // Determine the minimum number of points across all models for better transitions
         let numPoints = this.options.maxPoints;
@@ -72,12 +61,44 @@ class Avatar3D {
             this.sprites.push(sprite);
             this.scene.add(sprite);
         }
+    }
 
+    // public async show(modelURL : string) {
+    //       const container = document.getElementById('avatar-container');
+    //     if (!container) {
+    //         console.error(`Container with ID '${'avatar-container'}' not found.`);
+    //         return;
+    //     }
+    //     this.renderer.setSize(container.clientWidth, container.clientHeight);
+    //     container.appendChild(this.renderer.domElement);
+    //     this.camera.position.z = 3;
+
+    //     for (let i = 0; i < 25; i++) {
+    //         let spriteMaterial = new THREE.SpriteMaterial({ color: '#FFFFFF' });
+    //         let sprite = new THREE.Sprite(spriteMaterial);
+
+    //         sprite.scale.set(0.05, 0.05, 0.05);
+
+    //         sprite.position.set(
+    //             Math.random() * 2.0 - 1.0, // x
+    //             Math.random() * 2.0 - 1.0, // y
+    //             Math.random(), // z - this will be set using depth data later
+    //         );
+    //         this.scene.add(sprite);
+    //     }
+
+    //     let animate = () => {
+    //         this.renderer.render(this.scene, this.camera);
+    //     };
+    //     this.renderer.setAnimationLoop(animate);
+    // }
+
+    public async show() {
+        this.camera.position.z = 3;
         this.changeModel(0);
 
         let clock = new THREE.Clock();        
         clock.start();
-
     
         let animate = (time : number)=> {
             this.tweenGroup.update(time);
@@ -113,7 +134,7 @@ class Avatar3D {
     
             let appearTween = new TWEEN.Tween( sprite.position)
                 .to( {y: point.y, x: point.x, z: point.z}, 2000 )
-                .easing( TWEEN.Easing.Quadratic.InOut )
+                .easing( TWEEN.Easing.Exponential.Out )
                 .delay( Math.random()*2000  + 1000) // Add random delay 0-1000ms
                 .yoyo( false )
                 .onComplete( () => {
@@ -125,14 +146,12 @@ class Avatar3D {
 
                     let floatingTween = new TWEEN.Tween( sprite.position )
                         .to( { y: point.y + (Math.random()*0.1)}, Math.random() * 5000 + 1000 )
-                        .easing( TWEEN.Easing.Cubic.InOut )
-                        .delay(  10 )
-                        .yoyo( true )
-                        .repeat( Infinity )
+                        .easing(TWEEN.Easing.Cubic.InOut)
+                        .delay(10)
+                        .yoyo(true)
+                        .repeat(Infinity)
                         .start();
-                    this.tweenGroup.add(floatingTween);
-
-                    
+                    this.tweenGroup.add(floatingTween);  
                 })
                 .start();
 
@@ -140,14 +159,20 @@ class Avatar3D {
             
             let colorTween = new TWEEN.Tween( sprite.material.color )
                 .to( targetSpriteMaterial.color, 3000 )
-                .easing( TWEEN.Easing.Quadratic.InOut )
-                .delay( 2000) // Add random delay 0-1000ms
-                .yoyo( false )
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .delay(2000) // Add random delay 0-1000ms
+                .yoyo(false)
                 .start();
             
             this.tweenGroup.add(appearTween);            
             this.tweenGroup.add(colorTween);
         }
+    }
+
+    private cleanupScene() {
+        this.tweenGroup.removeAll();
+        this.scene.children = [];
+        this.sprites = [];
     }
 
     private nextModel() {
@@ -157,7 +182,13 @@ class Avatar3D {
 }
 
 export async function test() {
-    let avatar3d = new Avatar3D(new Options());
-    avatar3d.show("avatar-creator/sampled_depth_points_with_color.json");
+    let model = await loadModel("avatar-creator/sampled_depth_points_with_color.json");
+    if (model == null) {
+            console.error("Failed to load model.");
+            return;
+    }
+
+    let avatar3d = new Avatar3D([model], new Options());
+    avatar3d.show();
     console.log('Test function in TypeScript');
 }
