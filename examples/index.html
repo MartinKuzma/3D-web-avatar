@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Avatar Debug</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #181818;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h3>Debug Controls</h3>
+        <button onclick="runShowFunction()">Run show()</button>
+        <button onclick="runShowWithOptions()">Run show() with options</button>
+        <button onclick="clearScene()">Clear Scene</button>
+        <button onclick="toggleDebugInfo()">Toggle Debug Info</button>
+    </div>
+    
+    <div id="debug-info" style="display: none;">
+        <h4>Debug Information</h4>
+        <div id="debug-content"></div>
+    </div>
+    <div id="avatar-container" style="width: auto; height: 800px; border: 1px solid #c0c0c0;"></div>
+    <script src="../dist/bundle.js"></script>
+    <script>
+        let debugMode = false;
+        let currentRenderer = null;
+
+        // Enable debug mode
+        function enableDebugMode() {
+            debugMode = true;
+            console.log("Debug mode enabled");
+            
+            // Override console.log to also display in debug panel
+            const originalLog = console.log;
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                if (debugMode) {
+                    updateDebugInfo(args.join(' '));
+                }
+            };
+        }
+
+        function updateDebugInfo(message) {
+            const debugContent = document.getElementById('debug-content');
+            const timestamp = new Date().toLocaleTimeString();
+            debugContent.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            debugContent.scrollTop = debugContent.scrollHeight;
+        }
+        
+
+        function runShowFunction() {
+            console.log("Running show() function in debug mode");
+            
+            window['3DAvatar'].showModels([
+                "avatar-creator/3.json", 
+            ],
+            {
+                chanceOfFloatingPoint: 0.0,
+                rotateCamera: true,
+                maxPoints: 1000,
+            }
+        );
+
+        }
+    </script>
+</body>
+</html>

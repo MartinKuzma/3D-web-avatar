@@ -1,45 +1,55 @@
-import * as THREE from 'three';
-import { HEXColor, Model, loadModel } from './model';
+import { HEXColor, Model, loadModel, Point } from './model';
+import { Options, defaultOptions } from './options';
+import { RGBAColor } from './color';
 import * as TWEEN from '@tweenjs/tween.js';
+import { 
+  Scene, 
+  PerspectiveCamera, 
+  WebGLRenderer, 
+  SpriteMaterial, 
+  Sprite, 
+  Color,
+  Clock
+} from 'three';
 
-export class Options {
-    public renderTargetID: string = 'avatar-container';
-    public backgroundColor: HEXColor = '#00000000';
-    public rotateCamera: boolean = true;
-    public rotateCameraSpeed: number = 0.25;
-    public cameraDistance: number = 3;
-    public pointScale: number = 0.025;
-    public chanceOfFloatingPoint: number = 0.7;
-    public maxPoints: number = 2000;
-}
-
-
-class Avatar3D {
-    private scene: THREE.Scene;
-    private camera: THREE.PerspectiveCamera;
-    private renderer: THREE.WebGLRenderer;
+class AvatarRenderer {
+    private scene: Scene;
+    private camera: PerspectiveCamera;
+    private renderer: WebGLRenderer;
+    private container: HTMLElement;
     private models : Model[] = [];
     private currentModelIndex: number = 0;
-    private sprites : THREE.Sprite[] = [];
+    private sprites : Sprite[] = [];
     private tweenGroup = new TWEEN.Group()
     private options: Options;
 
+    private cameraTweenGroup = new TWEEN.Group()
+    private cameraRotation = 0;
+
     constructor(models : Model[], options: Options) {
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer({ alpha: true });
-        this.renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
-        this.options = options;
+        this.options = {...defaultOptions, ...options};
         this.models = models;
+        
+        this.scene = new Scene();
+        this.container = this.getRenderTarget(this.options.renderTargetID);
+        this.camera = new PerspectiveCamera(75, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
 
-        const container = document.getElementById(options.renderTargetID);
-        if (!container) {
-            throw new Error(`Container with ID '${options.renderTargetID}' not found.`);
-        }
+        const backgroundColor = new Color(
+            this.options.backgroundColor.r, 
+            this.options.backgroundColor.g, 
+            this.options.backgroundColor.b,
+        )
 
+        
+        this.renderer = new WebGLRenderer({ alpha: true });
+        this.renderer.setClearColor(
+            backgroundColor, 
+            this.options.backgroundColor.a,
+        );
 
-        this.renderer.setSize(container.clientWidth, container.clientHeight);
-        container.appendChild(this.renderer.domElement);
+        
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.container.appendChild(this.renderer.domElement);
 
         // Determine the minimum number of points across all models for better transitions
         let numPoints = this.options.maxPoints;
@@ -50,71 +60,70 @@ class Avatar3D {
              }
         }
 
+        // Create a sprite for each point with initial off-screen position
         for (let i = 0; i < numPoints; i++ ) {
-            const spriteMaterial = new THREE.SpriteMaterial( { color: '#111111' } );
-            const sprite = new THREE.Sprite( spriteMaterial );
+            const spriteMaterial = new SpriteMaterial( {
+                color: backgroundColor
+            } );
+
+            const sprite = new Sprite( spriteMaterial );
             const scale = this.options.pointScale
             sprite.scale.set(scale, scale, scale);
-
-            sprite.position.set(0, 0, 0);
+            sprite.position.set(0, -5, 0);
 
             this.sprites.push(sprite);
             this.scene.add(sprite);
         }
     }
 
-    // public async show(modelURL : string) {
-    //       const container = document.getElementById('avatar-container');
-    //     if (!container) {
-    //         console.error(`Container with ID '${'avatar-container'}' not found.`);
-    //         return;
-    //     }
-    //     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    //     container.appendChild(this.renderer.domElement);
-    //     this.camera.position.z = 3;
-
-    //     for (let i = 0; i < 25; i++) {
-    //         let spriteMaterial = new THREE.SpriteMaterial({ color: '#FFFFFF' });
-    //         let sprite = new THREE.Sprite(spriteMaterial);
-
-    //         sprite.scale.set(0.05, 0.05, 0.05);
-
-    //         sprite.position.set(
-    //             Math.random() * 2.0 - 1.0, // x
-    //             Math.random() * 2.0 - 1.0, // y
-    //             Math.random(), // z - this will be set using depth data later
-    //         );
-    //         this.scene.add(sprite);
-    //     }
-
-    //     let animate = () => {
-    //         this.renderer.render(this.scene, this.camera);
-    //     };
-    //     this.renderer.setAnimationLoop(animate);
-    // }
+    private getRenderTarget(id : string) : HTMLElement {
+        const container = document.getElementById(id);
+        if (!container) {
+            throw new Error(`Container with ID '${id}' not found.`);
+        }
+        return container;
+    }
 
     public async show() {
-        this.camera.position.z = 3;
+        this.camera.position.y = 0;
+        this.camera.lookAt(0, 0, 0);
+        this.camera.position.z = this.options.cameraDistance;
         this.changeModel(0);
 
-        let clock = new THREE.Clock();        
+        let clock = new Clock();        
         clock.start();
+
+        let cameraClock = new Clock();
+        cameraClock.start();
+
+        this.cameraTweenGroup.removeAll();
     
         let animate = (time : number)=> {
             this.tweenGroup.update(time);
-            
-            const radius = 3; // Distance from center (current camera.position.z)
 
-            if (this.options.rotateCamera) {
-                this.camera.position.x = radius * Math.sin(clock.getElapsedTime() * this.options.rotateCameraSpeed);
-                this.camera.position.z = radius * Math.cos(clock.getElapsedTime() * this.options.rotateCameraSpeed);            
-                this.camera.lookAt(0, 0, 0);
+            if (clock.getElapsedTime() > this.options.nextModelIntervalSeconds) {
+                this.nextModel();
+                clock.start();
             }
-    
+            
+            this.rotateCameraAroundModel(cameraClock.getDelta());    
             this.renderer.render(this.scene, this.camera);
         }
     
         this.renderer.setAnimationLoop( animate );
+    }
+
+    private rotateCameraAroundModel(deltaTime: number) {
+        if (!this.options.rotateCamera) {
+            return;
+        }
+
+        this.cameraRotation += this.options.rotateCameraSpeed * deltaTime;
+        const radius = this.options.cameraDistance;
+
+        this.camera.position.x = radius * Math.sin(this.cameraRotation);
+        this.camera.position.z = radius * Math.cos(this.cameraRotation);
+        this.camera.lookAt(0, 0, 0);
     }
 
     private changeModel(index : number) {
@@ -124,43 +133,33 @@ class Avatar3D {
         }
 
         this.tweenGroup.removeAll();
-
-        this.currentModelIndex = index;
         const model = this.models[index];
+        const points = model.getPoints();
+        this.currentModelIndex = index;
 
         for (let i = 0; i < this.sprites.length; i++ ) {
-            const point = model.getPoints()[i];
+            const point = points[i];
             const sprite = this.sprites[i];
     
+            // Tween the new position
             let appearTween = new TWEEN.Tween( sprite.position)
                 .to( {y: point.y, x: point.x, z: point.z}, 2000 )
-                .easing( TWEEN.Easing.Exponential.Out )
-                .delay( Math.random()*2000  + 1000) // Add random delay 0-1000ms
+                .easing( TWEEN.Easing.Circular.Out )
+                .delay( Math.random()*2000) // Add random delay 0-1000ms
                 .yoyo( false )
                 .onComplete( () => {
                     this.tweenGroup.remove(appearTween);
-
-                    if (Math.random() < this.options.chanceOfFloatingPoint) {
-                        return;
-                    }
-
-                    let floatingTween = new TWEEN.Tween( sprite.position )
-                        .to( { y: point.y + (Math.random()*0.1)}, Math.random() * 5000 + 1000 )
-                        .easing(TWEEN.Easing.Cubic.InOut)
-                        .delay(10)
-                        .yoyo(true)
-                        .repeat(Infinity)
-                        .start();
-                    this.tweenGroup.add(floatingTween);  
+                    this.addFloatingAnimation(sprite, point);
                 })
                 .start();
 
-            const targetSpriteMaterial = new THREE.SpriteMaterial( { color: point.color } );
+            const targetSpriteMaterial = new SpriteMaterial( { color: point.color } );
             
+            // Tween the new color
             let colorTween = new TWEEN.Tween( sprite.material.color )
-                .to( targetSpriteMaterial.color, 3000 )
+                .to( targetSpriteMaterial.color, 2000 )
                 .easing(TWEEN.Easing.Quadratic.InOut)
-                .delay(2000) // Add random delay 0-1000ms
+                .delay(1000) // Add random delay 0-1000ms
                 .yoyo(false)
                 .start();
             
@@ -169,10 +168,29 @@ class Avatar3D {
         }
     }
 
+    private addFloatingAnimation(sprite : Sprite, point: Point) {
+         if (Math.random() > this.options.chanceOfFloatingPoint) {
+            return;
+        }
+
+        let floatingTween = new TWEEN.Tween( sprite.position )
+            .to( { y: point.y + (Math.random()*0.1)}, Math.random() * 5000 + 1000 )
+            .easing(TWEEN.Easing.Cubic.InOut)
+            .delay(10)
+            .yoyo(true)
+            .repeat(Infinity)
+            .start();
+        
+        this.tweenGroup.add(floatingTween);  
+    }
+
     private cleanupScene() {
         this.tweenGroup.removeAll();
         this.scene.children = [];
+        this.scene.clear();
         this.sprites = [];
+        this.renderer.setAnimationLoop( null );
+        this.renderer.dispose();
     }
 
     private nextModel() {
@@ -181,14 +199,20 @@ class Avatar3D {
     }
 }
 
-export async function test() {
-    let model = await loadModel("avatar-creator/sampled_depth_points_with_color.json");
-    if (model == null) {
-            console.error("Failed to load model.");
-            return;
+// Load multiple models from URLs and display them with given options.
+// Any models that fail to load are skipped.
+export async function showModels(modelURLs: string[], options: Options) {
+    let models : Model[] = [];
+
+    for (let url of modelURLs) {
+        let model = await loadModel(url);
+        if (model != null) {
+            models.push(model);
+        } else {
+            console.error(`Failed to load model from URL: ${url}`);
+        }
     }
 
-    let avatar3d = new Avatar3D([model], new Options());
+    let avatar3d = new AvatarRenderer(models, options);
     avatar3d.show();
-    console.log('Test function in TypeScript');
 }

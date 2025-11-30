@@ -1,0 +1,11 @@
+# CLI and argument parsing
+argparse
+
+# 3D processing (examples - adjust based on your needs)
+numpy>=1.21.0
+Pillow>=9.0.0
+pillow-heif>=1.1.1
+
+# Optional: for more advanced 3D processing
+# pymeshlab>=2022.2
+# open3d>=0.15.0
