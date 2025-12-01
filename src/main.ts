@@ -1,6 +1,5 @@
 import { HEXColor, Model, loadModel, Point } from './model';
 import { Options, defaultOptions } from './options';
-import { RGBAColor } from './color';
 import * as TWEEN from '@tweenjs/tween.js';
 import { 
   Scene, 
@@ -11,6 +10,8 @@ import {
   Color,
   Clock
 } from 'three';
+
+export { RGBAColor } from './color';
 
 class AvatarRenderer {
     private scene: Scene;

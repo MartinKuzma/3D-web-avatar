@@ -29,14 +29,16 @@ Update your html file to include the generated library and use it to display the
 ```html
 <script src="path/to/generated/library.js"></script>
 <script>
-    const modelURLs = ['path/to/output.json'];
+    const { showModels, RGBAColor } = window['3DAvatar'];
+
+    const modelURLs = ["2.json", "3.json"];
     const options = {
-        backgroundColor: 0xeeeeee,
-        pointSize: 2,
-        saturationLevel: 1.2,
+            backgroundColor: new RGBAColor(0, 0, 0, 1),
+            pointSize: 2,
+            saturationLevel: 1.2,
     };
 
-    window['3DAvatar'].showModels(modelURLs, options);
+    showModels(modelURLs, options);
 </script>
 ```
 

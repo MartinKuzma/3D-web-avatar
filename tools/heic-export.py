@@ -186,8 +186,8 @@ def export_model(args):
         color = point_colors[point_idx]
         hex_color = '#{:02x}{:02x}{:02x}'.format(color[0], color[1], color[2])
         json_points.append({
-            "position" : [point[0], point[1], point[2]],
-            "color": hex_color
+            "p" : [point[0], point[1], point[2]],
+            "c": hex_color
         })
     
     with open(args.output, 'w') as f:
@@ -231,11 +231,7 @@ def normalize_sampled_points(sampled_points, img_width, img_height):
     avg_y = np.average(sampled_points[:,1])
     sampled_points[:,0] = sampled_points[:,0] - avg_x
     sampled_points[:,1] = sampled_points[:,1] - avg_y
-    
-    # Adjust width and height to maintain aspect ratio
-    # aspect_ratio = img_width / img_height
-    # sampled_points[:, 0] *= aspect_ratio
-    
+
     # Invert axis for correct orientation
     sampled_points[:, 1] *= -1.0
     

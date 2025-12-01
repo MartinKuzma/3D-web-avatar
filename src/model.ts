@@ -59,11 +59,19 @@ export async function loadModel(modelURL: string) : Promise<Model | null> {
         let model = new Model("01");
 
         for (const pointData of pointsData) {
+            if (!pointData.p || !pointData.c) {
+                throw new Error("Invalid point data");
+            }
+
+            if (pointData.p.length !== 3) {
+                throw new Error("Point position must have three coordinates");
+            }
+
             const point = new Point(
-                pointData.position[0],
-                pointData.position[1],
-                pointData.position[2],
-                pointData.color
+                pointData.p[0],
+                pointData.p[1],
+                pointData.p[2],
+                pointData.c
             );
             model.addPoint(point);
         }
