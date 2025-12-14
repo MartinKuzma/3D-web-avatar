@@ -89,6 +89,13 @@ def main():
         default=None,
         help="Cut circle radius from center (optional)"
     )
+    
+    parser.add_argument(
+        "--custom-scale-z",
+        type=float,
+        default=1.0,
+        help="Custom Z scale factor (default: 1.0)"
+    )
         
     args = parser.parse_args()
     export_model(args)
@@ -164,7 +171,7 @@ def export_model(args):
             )
             point_colors[idx] = saturated_color
   
-    sampled_points = normalize_sampled_points(sampled_points, img_orig.width, img_orig.height)
+    sampled_points = normalize_sampled_points(sampled_points, img_orig.width, img_orig.height, args.custom_scale_z)
     
     if args.cut_circle:
         print(f"Cutting circle with radius: {args.cut_circle}")
@@ -215,9 +222,10 @@ def create_crop_box(args):
         return None
     return (x, y, x + width, y + height)
 
-def normalize_sampled_points(sampled_points, img_width, img_height):
+def normalize_sampled_points(sampled_points, img_width, img_height, custom_scale_z=1.0):
     # Normalize points to -0.5 to 0.5 range
-    sampled_points[:, 0] = (sampled_points[:, 0] / img_width) - 0.5
+    aspect_ratio = img_width / img_height
+    sampled_points[:, 0] = (sampled_points[:, 0] / img_width * aspect_ratio) - 0.5
     sampled_points[:, 1] = (sampled_points[:, 1] / img_height) - 0.5
     
     min_z = np.min(sampled_points[:, 2])
@@ -225,6 +233,7 @@ def normalize_sampled_points(sampled_points, img_width, img_height):
     move_z = ((max_z + min_z) / 2.0) / max_z
     
     sampled_points[:, 2] = ((sampled_points[:, 2]) / max_z) - move_z
+    sampled_points[:, 2] = sampled_points[:, 2] * custom_scale_z
     
     # Center points around origin
     avg_x = np.average(sampled_points[:,0])
